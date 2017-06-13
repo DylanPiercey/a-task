@@ -6,8 +6,8 @@
   "main": "index.js",
   "bugs": "https://github.com/DylanPiercey/a-task/issues",
   "devDependencies": {
-    "snazzy": "^6.0.0",
-    "standard": "^9.0.2",
+    "snazzy": "^7.0.0",
+    "standard": "^10.0.2",
     "tap-spec": "^4.1.1",
     "tape": "^4.6.3"
   },

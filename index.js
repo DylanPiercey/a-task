@@ -67,7 +67,7 @@ function ATask (task, opts) {
    * Kills any running child processes.
    */
   function cleanup () {
-    for (var i = processes.length; i--;) processes[i].then(kill)
+    for (var i = processes.length; i--;) processes[i] && processes[i].then(kill)
     processes = new Array(concurrency)
   }
 }
@@ -80,23 +80,18 @@ function ATask (task, opts) {
  */
 function spawn (script) {
   // Spawn script with shared stdout and ipc.
-  var p = cp.spawn('node', [], {
-    cwd: process.cwd(),
-    stdio: ['pipe', 'inherit', 'inherit', 'ipc']
-  })
-
-  // Load script into process and add ipc.
-  p.stdin.write('var transform = ' + script + '\n')
-  p.stdin.write('process.on("message", function (data) {\n' +
+  return waitForMessage(cp.spawn('node', ['-e', (
+    'var transform = ' + script + '\n' +
+    'process.on("message", function (data) {\n' +
     '  var calls = data.calls\n' +
     '  for (var i = 0, len = calls.length; i < len; i++) calls[i] = transform.apply(null, calls[i])\n' +
     '  process.send(data)\n' +
-  '})\n')
-  p.stdin.write('process.send("ready")')
-  p.stdin.end()
-
-  // Returns a promise that waits for a ready message.
-  return waitForMessage(p)
+    '})\n' +
+    'process.send("ready")'
+  )], {
+    cwd: process.cwd(),
+    stdio: ['pipe', 'inherit', 'inherit', 'ipc']
+  }))
 }
 
 /**
