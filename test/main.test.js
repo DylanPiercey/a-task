@@ -29,6 +29,16 @@ test('Concurrency', t => {
     .then(add.cleanup)
 })
 
+test('Promise', t => {
+  t.plan(1)
+
+  const add = task((a, b) => Promise.resolve(a + b))
+
+  add([1, 2]).then((result) => {
+    t.equals(result, 3, 'single')
+  }).then(add.cleanup)
+})
+
 test('Setup', t => {
   t.plan(2)
 

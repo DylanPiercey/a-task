@@ -85,7 +85,10 @@ function spawn (script) {
     'process.on("message", function (data) {\n' +
     '  var calls = data.calls\n' +
     '  for (var i = 0, len = calls.length; i < len; i++) calls[i] = transform.apply(null, calls[i])\n' +
-    '  process.send(data)\n' +
+    '  Promise.all(calls).then(function (result) {\n' +
+    '    data.calls = result \n' +
+    '    process.send(data)\n' +
+    '  })\n' +
     '})\n' +
     'process.send("ready")'
   )], {

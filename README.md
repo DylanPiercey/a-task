@@ -28,6 +28,20 @@ add([1, 2]).then(result => {
 })
 ```
 
+# Async Tasks
+Tasks can return promises that run async.
+
+```javascript
+const add = task((a, b) => {
+  return Promise.resolve(a + b)
+})
+
+// Creates a child process to evaluate the above task.
+add([1, 2]).then(result => {
+  result === 3
+})
+```
+
 # Concurrency
 ```javascript
 const inputs = [[1, 2], [3, 4], [5, 6]]
