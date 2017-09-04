@@ -2,6 +2,7 @@
 
 var assert = require('assert')
 var cp = require('child_process')
+var onExit = require('exit-hook')
 
 // Expose lib
 module.exports = ATask
@@ -25,10 +26,11 @@ function ATask (task, opts) {
   var processes = new Array(concurrency)
 
   // Wrap script in iife if setup option used.
-  if (opts.setup) script = '(' + script + ')();'
+  if (opts.setup) script = '(' + script + ')()'
 
   // Expose task runnner and cleanup function.
   exec.cleanup = cleanup
+  onExit(cleanup)
   return exec
 
   /**
@@ -79,19 +81,9 @@ function ATask (task, opts) {
  * @return {Promise}
  */
 function spawn (script) {
+  var evalScript = '(' + respondToMessage.toString() + '(' + script + '))'
   // Spawn script with shared stdout and ipc.
-  return waitForMessage(cp.spawn('node', ['-e', (
-    'var transform = ' + script + '\n' +
-    'process.on("message", function (data) {\n' +
-    '  var calls = data.calls\n' +
-    '  for (var i = 0, len = calls.length; i < len; i++) calls[i] = transform.apply(null, calls[i])\n' +
-    '  Promise.all(calls).then(function (result) {\n' +
-    '    data.calls = result \n' +
-    '    process.send(data)\n' +
-    '  })\n' +
-    '})\n' +
-    'process.send("ready")'
-  )], {
+  return waitForMessage(cp.spawn('node', ['-e', evalScript], {
     cwd: process.cwd(),
     stdio: ['pipe', 'inherit', 'inherit', 'ipc']
   }))
@@ -132,4 +124,25 @@ function waitForMessage (p, id) {
       p.removeListener('error', handleError)
     }
   })
+}
+
+/**
+ * Used inside a forked process to respond to the parent process call.
+ * @param {function} transform - the data transformer to run on each item.
+ */
+function respondToMessage (transform) {
+  process.on('message', function (data) {
+    var calls = data.calls
+    var len = calls.length
+    for (var i = 0; i < len; i++) {
+      calls[i] = transform.apply(null, calls[i])
+    }
+
+    Promise.all(calls).then(function (result) {
+      data.calls = result
+      process.send(data)
+    })
+  })
+
+  process.send('ready')
 }
